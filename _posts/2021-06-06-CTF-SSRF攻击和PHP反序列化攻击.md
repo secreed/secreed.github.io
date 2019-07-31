@@ -5,6 +5,6 @@ date: 2019-06-04
 category: security
 
 tags:
-- [CTF,RE]
+- [CTF,web]
 description: 攻防实验室搭建二：Vulhub漏洞复现环境搭建
 ---

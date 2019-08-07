@@ -2,7 +2,7 @@
 <html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>明天就要嫁给我了</title>
-        <embed src="Live.mp3" hidden="true" autostart="true" loop="loop">
+        <!-- <embed src="Live.mp3" hidden="true" autostart="true" loop="loop">  -->
         <link type="text/css" rel="stylesheet" href="./js/default.css">
 		<script type="text/javascript" src="./js/jquery.min.js"></script>
 		<script type="text/javascript" src="./js/jscex.min.js"></script>
@@ -22,8 +22,8 @@
         </style>
 </head>
     <body>
-			<!-- <audio autoplay="autoplay" loop="loop" preload="auto" src="Live.mp3" preload="auto">
-			</audio>  -->
+        <audio id="audio" autoplay="autoplay" loop="true" preload="auto" src="Live.mp3" controls loop preload="auto" hidden="true">
+		</audio> 
         <div id="main">
             <div id="error">以后洗衣做饭多担待哦，哈哈哈！！！！（看不到看不到……）(<a href="http://www.google.cn/chrome/intl/zh-CN/landing_chrome.html?hl=zh-CN&brand=CHMI">Chrome</a>)或者火狐(<a href="http://firefox.com.cn/download/">Firefox</a>)浏览器，或者其他游览器的最新版本。</div>
              <div id="wrap">
@@ -66,6 +66,9 @@
                 newOn: 150		//雪花出现的频率 这个数值越小雪花越多
             });
         });
+
+        var myAuto = document.getElementById('audio');  
+        myAuto.play();
     </script>
     <script>
     (function(){

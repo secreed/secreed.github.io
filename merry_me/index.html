@@ -2,7 +2,7 @@
 <html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>明天就要嫁给我了</title>
-        <embed src="Live.mp3" hidden="true" autostart="true" loop="1111">
+        <embed src="Live.mp3" hidden="true" autostart="true" loop="loop">
         <link type="text/css" rel="stylesheet" href="./js/default.css">
 		<script type="text/javascript" src="./js/jquery.min.js"></script>
 		<script type="text/javascript" src="./js/jscex.min.js"></script>
@@ -12,8 +12,10 @@
 		<script type="text/javascript" src="./js/jscex-async.min.js"></script>
 		<script type="text/javascript" src="./js/jscex-async-powerpack.min.js"></script>
 		<script type="text/javascript" src="./js/functions.js" charset="utf-8"></script>
-		<script type="text/javascript" src="./js/love.js" charset="utf-8"></script>
-	    <style type="text/css">
+        <script type="text/javascript" src="./js/love.js" charset="utf-8"></script>
+        <script type="text/javascript" src="jq.snow.js"></script>
+        <style type="text/css">
+        
 <!--
 .STYLE1 {color: #666666}
 -->
@@ -56,7 +58,15 @@
     
     <script>
     </script>
-
+    <script type="text/javascript">
+        $(function(){
+            $.fn.snow({ 
+                minSize: 5,		//雪花的最小尺寸
+                maxSize: 50, 	//雪花的最大尺寸
+                newOn: 150		//雪花出现的频率 这个数值越小雪花越多
+            });
+        });
+    </script>
     <script>
     (function(){
         var canvas = $('#canvas');
@@ -168,7 +178,7 @@
 
             // 会有闪烁不得意这样做, (＞﹏＜)
             canvas.parent().css("background", "url(" + tree.toDataURL('image/png') + ")");
-            canvas.css("background", "#ffe");
+            canvas.css("background", "#eccaaf");
             $await(Jscex.Async.sleep(300));
             canvas.css("background", "none");
         }));

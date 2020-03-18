@@ -12,7 +12,9 @@ description: php非阻塞执行windows系统命令
 >积硅步至千里--总有一天你会看到不一样的风景，当你坚持不懈含着泪水全力向前！
 凌晨1点，静心梳理
 TODO:完善python异步
+
 ## 参考
+
 1. https://www.phpclasses.org/package/9674-PHP-Get-commands-output-without-waiting-to-finish.html
 2. https://ourcodeworld.com/articles/read/207/how-to-execute-a-shell-command-using-php-without-await-for-the-result-asynchronous-in-linux-and-windows-environments
 3. https://www.php.net/manual/en/function.exec.php
@@ -23,9 +25,12 @@ TODO:完善python异步
 并发IO问题一直是服务器端编程中的技术难题，从最早的同步阻塞直接Fork进程，到Worker进程池/线程池，到现在的异步IO、协程。阻塞和非阻塞关注的是程序在等待调用结果（消息，返回值）时的状态。现在网络的日益发展，对响应时间和处理并发的要求越来越高，所以异步非阻塞的需求也越来越多。
 
 ### 非阻塞的优点：
+
 1. 非阻塞调用指在不能立刻得到结果之前，该调用不会阻塞当前线程，能及时返回响应，减少响应时间；
 2. 高并发，同步阻塞IO模型的并发能力依赖于进程/线程数量，响应时间的下降可以带来更多的并发能力。
+
 ### 非阻塞的缺点：
+
 1. **启动大量进程会带来额外的进程调度消耗**。非阻塞模式下，如果大量线程已经返回响应而仍然在执行计算操作，会使CPU利用率不可控的增高；
 2. 这种模型严重依赖进程的数量解决并发问题，一个客户端连接就需要占用一个进程，工作进程的数量有多少，并发处理能力就有多少。**操作系统可以创建的进程数量是有限的**;
 3. 过多的异步和多线程模型会造成编码困难或线程混乱，如**出现大量僵尸进程**等
@@ -79,22 +84,162 @@ TODO:完善python异步
 
 subprocess
 
+#### PHP调用python
+
+1. `system(string command [, int $return_var])`
+system函数本身具有打印命令执行输出的功能，也就是说，程序中的输出可在PHP页面中显示。如果程序成功执行，则system的返回值为程序输出的最后一行，如果执行失败，返回false。第二个参数是可选的，用来得到命令执行后的状态码，0表示成功调用外部程序，1表示调用失败。
+
+示例：
+
+`system($comando." > NUL");`
+
+```php
+<?php
+    echo("Congratulations!\n");
+    $cmd = system("python feedback.py 20141010",$ret);
+    echo("ret is $ret  ");
+?>
+```
+
+2. `exec (string command [, string array [, int return_var]])`
+exec ()函数与system()类似，也执行给定的命令，但不输出结果，而是返回结果的最后一行。虽然它只返回命令结果的最后一行，但用第二个参数array 可以得到完整的结果，方法是把结果逐行追加到array的结尾处。只有指定了第二个参数时，才可以用第三个参数，用来取得命令执行的状态码。
+
+示例：
+`exec($cmd . " > /dev/null &", $log, $status);`
+
+```php
+<?php
+    exec("python feedback.py 20141010",$array,$ret);
+    echo("result : $array");
+    echo("ret is $ret");
+?>
+```
+
+#### python 获取cmd参数
+
+通过模块中的 sys.argv 就可以访问到所有的命令行参数，它的返回值是包含所有命令行参数的列表(list)，
+
+>参数个数： len(sys.argv)
+脚本名： sys.argv[0]
+参数1： sys.argv[1]
+参数2： sys.argv[2]
+传入两个参数：`python test.py param1 param2` 
+>* len(sys.argv) : 3
+>* sys.argv[0] : test.py
+>* sys.argv[1] : param1 ; sys.argv[2] : param2
+
+示例
+
+```python
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
+import sys
+
+
+def main():
+    """
+     通过sys模块来识别参数demo, http://blog.csdn.net/ouyang_peng/
+    """
+    print('参数个数为:', len(sys.argv), '个参数。')
+    print('参数列表:', str(sys.argv))
+    print('脚本名为：', sys.argv[0])
+    for i in range(1, len(sys.argv)):
+        print('参数 %s 为：%s' % (i, sys.argv[i]))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+#### python执行系统命令
+
+1. os.system()
+返回结果为0表示执行成功，无法获取命令输出的内容，本在cmd输出的内容会直接在控制台输出。
+当命令运行结束后接着往下面执行程序(**同步阻塞式**)。用法如：os.system("ipconfig")。
+2. os.popen()
+os.popen()返回的是一个file对象，那么可以跟打开文件一样操作，r是以读的方式打开
+当命令运行结束后接着往下面执行程序(**同步阻塞式**)。
+3. 管道subprocess模块
+在当前进程下产生子进程。
+用wait()函数等待结果(异步非阻塞式)。
+3.1 check_output
+
+```python 
+result = subprocess.check_output(r'adb devices') 
+## 命令执行的输出结果放到了result里
+```
+
+3.2 Popen
+
+```python
+process = subprocess.Popen(r'adb devices',shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+ #开启新的进程，执行“adb devices”命令。shell=True关键字是运行将命令和参数写在一起，没有该参数，则将命令和参数分开: ['ls','-l']
+
+command_output = process.stdout.read().decode('gbk')
+
+print(command_output)
+```
+
+有些命令行是异步执行的不会马上返回输出，所以有时候我们要先等这个命令行执行完毕才能从stdout读出来数据。这个时候要加上`process.wait()`
+
+示例2
+
+```python
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
+import sys
+import subprocess
+def main():
+    if len(sys.argv) == 3:
+        print "_________________"
+        url = sys.argv[1]
+        mirror_path = sys.argv[2]
+        exepath = "D:\\Program Files (x86)\\WinHTTrack\\httrack.exe"
+        mingling='"'+exepath+ '" ' + url + ' -w -O '+mirror_path+ ' -%v -%P -p3 -T10 -c5 '#  > ./output.txt   cmd \c 
+        mingling2 = '"'+exepath+ '" ' + url + ' -w -O '+mirror_path+ ' -%v -%P -p3 -T10 -c5'
+        mingling3 = mingling + " && echo y | " + mingling2
+        print mingling3
+        process = subprocess.Popen(mingling3, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # process.wait()
+        # out = process.stdout.read()         # 'hello'
+        # err = process.stderr.read() 
+        # print out
+        # print err
+        return 1
+    else:
+        print "-------------------------"
+        return 0
+
+if __name__ == '__main__':
+    main()
+```
+
+4. 命令操作
+* 运行多条命令 ： 使用 && 连接  `cd D:/ && dir`
+* 需要输入y确认（半自动命令） ： 使用 echo 与 |   `echo y | xxx.exe -a -w`
+
+#### 使用 httrack 爬站
+
+`.\httrack.exe https://secreed.github.io/ -w -O "E:/outsite2//" -%v -%P -p3 -T10 -c5`
 
 ### 提前结束会话（请求）  
   
 1. For PHP using FastCGI and PHP_FPM: fastcgi_finish_request() 
 2. PHP using mod_php (standard Apache): flush
 
-#### FastCGI的非阻塞方法：fastcgi_finish_request() 
+#### FastCGI的非阻塞方法：fastcgi_finish_request()
 
 **windows下测试失败**
+
 [官方链接](https://www.php.net/manual/zh/function.fastcgi-finish-request.php)
 正常脚本结束时php会自动调用session_write_close()函数, 而脚本在处理中的时候占用者session锁,对于后续请求来说是阻塞的.所以要尽快手动调用session_write_close()结束并保存session数据. 这对于其他有竞争锁情况同样适用,没有用了要尽快释放
 
 1. 条件：
 在PHP5.3.3版本之后，不管是Nginx还是Apache服务器，只要运行在FastCGI模式下，均可使用该方法，官方解释的作用是冲刷(flush)所有响应的数据给客户端。
 一般模式下(如Apache, Nginx, FastCGI(直接使用fastcgi_finish_request()更方便等), 提前输出内容, 结束会话.
-2. ` boolean fastcgi_finish_request ( void )`
+2. `boolean fastcgi_finish_request ( void )`
 此函数冲刷(flush)所有响应的数据给客户端并结束请求。 这使得客户端结束连接后，需要大量时间运行的任务能够继续运行。
 用法：可以在读写大文件、循环更新数据库等不影响结果的操作之前，执行该函数，把结果返回给客户端，php会继续执行下面的逻辑而不影响客户端的响应时间。
 3. 示例
@@ -138,6 +283,7 @@ fastcgi_finish_request();
 * 而ob_end_flush()调用之后 ob_get_contents()取到的是空字符串，同时浏览器也接收不到输出，即没有任何输出。
 7. 示例
 示例1
+
 ```php
 //1. stack overflow
 ob_start();
@@ -154,7 +300,9 @@ flush();
 
 // run other process without the client attached.
 ```
+
 示例2
+
 ```php
 //适用于大多数运行模式(不包括命令行模式)
 set_time_limit(0);  //设置不限执行时间
@@ -222,8 +370,6 @@ exit();
 * 返回值
 >返回一个和 fopen() 所返回的相同的文件指针，只不过它是单向的（只能用于读或写）并且必须用 pclose() 来关闭。此指针可以用于 fgets()，fgetss() 和 fwrite()。 当模式为 'r'，返回的文件指针等于命令的 STDOUT，当模式为 'w'，返回的文件指针等于命令的 STDIN。
 如果出错返回 FALSE。
-
- 
 
 3. 示例
 

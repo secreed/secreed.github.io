@@ -6,7 +6,8 @@ category: 探针
 
 tags:
 - php
-php非阻塞执行windows系统命令
+- 工作
+description: php非阻塞执行windows系统命令
 ---
 >积硅步至千里--总有一天你会看到不一样的风景，当你坚持不懈含着泪水全力向前！
 凌晨1点，静心梳理
@@ -16,8 +17,11 @@ TODO:完善python异步
 2. https://ourcodeworld.com/articles/read/207/how-to-execute-a-shell-command-using-php-without-await-for-the-result-asynchronous-in-linux-and-windows-environments
 3. https://www.php.net/manual/en/function.exec.php
 4. https://blog.csdn.net/weixin_37281289/article/details/99686926
+
 ## 非阻塞调用分析
+
 并发IO问题一直是服务器端编程中的技术难题，从最早的同步阻塞直接Fork进程，到Worker进程池/线程池，到现在的异步IO、协程。阻塞和非阻塞关注的是程序在等待调用结果（消息，返回值）时的状态。现在网络的日益发展，对响应时间和处理并发的要求越来越高，所以异步非阻塞的需求也越来越多。
+
 ### 非阻塞的优点：
 1. 非阻塞调用指在不能立刻得到结果之前，该调用不会阻塞当前线程，能及时返回响应，减少响应时间；
 2. 高并发，同步阻塞IO模型的并发能力依赖于进程/线程数量，响应时间的下降可以带来更多的并发能力。
@@ -28,7 +32,9 @@ TODO:完善python异步
 
 
 ## 官网的两个解决方案
+
 1. popen()
+
 ```php
     function execInBackground($cmd) {
 
@@ -47,7 +53,9 @@ TODO:完善python异步
     
 }
 ```
+
 2. system()
+
 ```php
     function executeAsyncShellCommand($comando = null){
         if(!$comando){
@@ -62,9 +70,13 @@ TODO:完善python异步
         }
     }
 ```
+
 ## 方案分析
+
 经测试，网上各种方法，均为成功（win10 wamp搭的php web服务），最后通过调用python程序（python的异步操作）实现。
+
 ### 调用python，实现非阻塞响应
+
 subprocess
 
 
@@ -74,6 +86,7 @@ subprocess
 2. PHP using mod_php (standard Apache): flush
 
 #### FastCGI的非阻塞方法：fastcgi_finish_request() 
+
 **windows下测试失败**
 [官方链接](https://www.php.net/manual/zh/function.fastcgi-finish-request.php)
 正常脚本结束时php会自动调用session_write_close()函数, 而脚本在处理中的时候占用者session锁,对于后续请求来说是阻塞的.所以要尽快手动调用session_write_close()结束并保存session数据. 这对于其他有竞争锁情况同样适用,没有用了要尽快释放
@@ -85,6 +98,7 @@ subprocess
 此函数冲刷(flush)所有响应的数据给客户端并结束请求。 这使得客户端结束连接后，需要大量时间运行的任务能够继续运行。
 用法：可以在读写大文件、循环更新数据库等不影响结果的操作之前，执行该函数，把结果返回给客户端，php会继续执行下面的逻辑而不影响客户端的响应时间。
 3. 示例
+
 ```php
 // your code here
 
@@ -92,8 +106,11 @@ fastcgi_finish_request();
 
 // run other process without the client attached.
 ```
+
 #### flush
+
 **windows下测试失败**
+
 1. 说明
 刷新PHP程序的缓冲，而不论PHP执行在何种情况下（CGI ，web服务器等等）。该函数将当前为止程序的所有输出发送到用户的浏览器。
 在以下情况中,**该方法失效**:无论哪个模式,gzip一定要关闭; window32下web服务不行;   [官方说明](https://www.php.net/manual/zh/function.flush.php)
@@ -161,6 +178,7 @@ file_put_contents('./log.txt', '10s后我写入log文本: 时间' . date('Y-m-d 
 ```
 
 ### 使用pcntl_fork()
+
 1. 条件：
 在PHP4.1.0版本之后都支持了该函数，使用前需要安装支持pcntl扩展并添加支持。<b>不支持windows系统</b>
 
@@ -169,6 +187,7 @@ file_put_contents('./log.txt', '10s后我写入log文本: 时间' . date('Y-m-d 
 成功时，在父进程执行线程内返回产生的子进程的PID，在子进程执行线程内返回0；
 失败时，在父进程上下文返回-1，不会创建子进程，并且会引发一个PHP错误。
 3. 示例
+
 ```php
 $pid = pcntl_fork();
 //父进程和子进程都会执行下面的代码
@@ -187,12 +206,14 @@ exit();
 ```
 
 ### 调用系统命令
+
 极端的情况下，可以调用系统命令，可以将数据传给后台任务执行，个人感觉不是很高效。
 **经测试，windows下未成功，linux下成功**
 参考 [官网的两个解决方案](#官网的两个解决方案)
 调用系统命令，将输出重定向到文件中，可以起到异步的效果
 
 ### 开启子进程 popen  proc_open()
+
 1. 说明
 函数通过创建一个管道，调用fork()产生一个子进程
 2. `popen(command,mode)`
@@ -205,6 +226,7 @@ exit();
  
 
 3. 示例
+
 ```php
 //例子1 (不等待子进程返回结果直接结束父脚本)
 <?php
@@ -238,14 +260,20 @@ register_shutdown_function(function () use ($p1, $p2) {
 });
 
 ```
+
 **proc_open() 该函数有更强的控制程序执行的能力, 可以双向(读又写)**
 
 ### 开启子进程的网址
+
 不等待返回结果(说白了就是发个请求唤起耗时的子脚本, 而不等待这个耗时子脚本返回结果)
+
 1. fsockopen打开一个网络连接或者一个Unix套接字连接, 忽略返回结果(不等待返回结果)
 2. curl 设置超时时间为1s, 忽略返回结果(不等待返回结果,直接超时,但最短要1s)
+
 #### 使用 fsockopen() + stream_set_blocking()方法
+
 使用 fsockopen() 打开一个网络连接或者一个Unix套接字连接，再用 stream_set_blocking() 非阻塞模式请求：
+
 ```php
 $fp = fsockopen("www.example.com", 80, $errno, $errstr, 30);
 if (!$fp) {
@@ -263,7 +291,9 @@ fclose($fp);
 ```
 
 #### 使用 cURL
+
 cURL除了我们通常使用的curl_init来初始化和发送post和get请求之外，还可以使用curl_multi_init()方法来实现异步请求，其原理是使用系统的select这个多路I/O复用机制来异步发送请求。
+
 ```php
 $mh = curl_multi_init();
 $ch = curl_init();
@@ -277,7 +307,9 @@ curl_multi_close($mh);
 
 echo "End\n";
 ```
+
 ### 使用扩展：Gearman/Swoole 扩展
+
 Gearman 是一个具有 php 扩展的分布式异步处理框架，能处理大批量异步任务。
 Swoole 最近很火，有很多异步方法，使用简单。
 >swoole框架：fpm里，通过swoole_client把url发送到swoole的server，swoole_server天然支持并行请求，把汇总的结果返回到fpm；

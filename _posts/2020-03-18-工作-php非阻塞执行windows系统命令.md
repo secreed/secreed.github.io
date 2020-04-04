@@ -54,7 +54,7 @@ description: php非阻塞执行windows系统命令
 	    $flag = "1";
         exec($cmd . " > /dev/null &", $log, $status);
     }
-    
+
 }
 ```
 
@@ -86,6 +86,7 @@ subprocess
 #### PHP调用python
 
 1. `system(string command [, int $return_var])`
+
 system函数本身具有打印命令执行输出的功能，也就是说，程序中的输出可在PHP页面中显示。如果程序成功执行，则system的返回值为程序输出的最后一行，如果执行失败，返回false。第二个参数是可选的，用来得到命令执行后的状态码，0表示成功调用外部程序，1表示调用失败。
 
 示例：
